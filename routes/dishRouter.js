@@ -1,59 +1,138 @@
 const express = require('express')
+const mongoose = require('mongoose')
+const Dishes = require('../models/dishes')
+const Comments = require('../models/comments')
 
 const dishRouter = express.Router()
 
 dishRouter
   .route('/')
-  .all()
-  .all((req, res, next) => {
-    res.status(200)
-    res.header('Content-Type', 'text/plain')
-    next()
-  })
   .get((req, res) => {
-    res.send('Will send all the dishes to you!')
+    // Dishes.find({}, (err, res) => {}) or...
+    Dishes.find({})
+      .then(
+        (dishes) => {
+          res.statusCode = 200
+          res.header('Content-Type', 'application/json')
+          res.json(dishes)
+        },
+        (err) => {
+          throw new Error('Error ' + err)
+        }
+      )
+      .catch((err) => console.log(err))
   })
   .post((req, res) => {
-    res.send(
-      'Will add the dish: ' +
-        req.body.name +
-        ' with details: ' +
-        req.body.description
-    )
+    dish = {}
+    comments = {}
+    for (let i in req.body) {
+      i !== 'comments' ? (dish[i] = req.body[i]) : (comments = req.body[i])
+    }
+    // I've created two models for the sake of learning
+    // two models that one reference to the other, but remember that you can use subdocuments,
+    // declaring comments: [schemaComments], subdocuments and populate sections in mongoose docs
+    Comments.insertMany(comments, (err, response) => {
+      dishComments = response.map((comment) => comment._id)
+      dish.comments = dishComments
+      Dishes.create(dish)
+        .then(
+          (dish) => {
+            console.log('Dishe created ', dish)
+            res.statusCode = 200
+            res.header('Content-Type', 'application/json')
+            res.json(dish)
+            // Comments.find({}, (err, result) => {
+            //   console.log('RESLT')
+            //   console.log(result)
+            // })
+          },
+          (err) => {
+            throw new Error('Error ' + err)
+          }
+        )
+        .catch((err) => console.log(err))
+    })
   })
   .put((req, res) => {
     res.status(403)
     res.send('Put operation not supported on dishes')
   })
   .delete((req, res) => {
-    res.send('Deleting all the dishes')
+    Dishes.deleteMany({})
+      .then(
+        (resp) => {
+          res.statusCode = 200
+          res.header('Content-Type', 'application/json')
+          dishesResp = resp
+          Comments.deleteMany({}, (err, deleteResult) => {
+            commentsResp = deleteResult
+            res.json({ ...dishesResp, ...commentsResp })
+          })
+        },
+        (err) => {
+          throw new Error('Error ' + err)
+        }
+      )
+      .catch((err) => console.log(err))
   })
 
 dishRouter
   .route('/:dishId')
-  .all((req, res, next) => {
-    res.status(200)
-    res.header('Content-Type', 'text/plain')
-    next()
-  })
   .get((req, res) => {
-    res.send('Will send details of dish  ' + req.params.dishId)
+    Dishes.findById(req.params.dishId)
+      .then(
+        (dish) => {
+          res.statusCode = 200
+          res.header('Content-Type', 'application/json')
+          res.json(dish)
+        },
+        (err) => {
+          throw new Error('Error ' + err)
+        }
+      )
+      .catch((err) => console.log(err))
   })
   .post((req, res) => {
     res.status(403)
     res.send('Put operation not supported on /dishes/' + req.params.dishId)
   })
   .put((req, res) => {
-    res.write('Updating the dish ' + req.params.dishId + '\n')
-    res.end(
-      'Will update the dish: ' +
-        req.body.name +
-        ' with details ' +
-        req.body.description
+    Dishes.findByIdAndUpdate(
+      req.params.dishId,
+      { $set: req.body },
+      { new: true }
     )
+      .then(
+        (dish) => {
+          res.statusCode = 200
+          res.header('Content-Type', 'application/json')
+          res.json(dish)
+        },
+        (err) => {
+          throw new Error('Error ' + err)
+        }
+      )
+      .catch((err) => console.log(err))
   })
   .delete((req, res) => {
-    res.send('Deleting the dishe ' + req.params.dishId)
+    Dishes.findByIdAndRemove(req.params.dishId)
+      .then(
+        (resp) => {
+          console.log('DELETE ONE')
+          console.log(resp)
+          // resp.comments it's already in ObjectId('_id')
+          Comments.deleteMany(
+            { _id: { $in: resp.comments } },
+            (err, commentsResult) => {
+              res.json(resp)
+            }
+          )
+        },
+        (err) => {
+          throw new Error('Error ' + err)
+        }
+      )
+      .catch((err) => console.log(err))
   })
 
 module.exports = dishRouter
