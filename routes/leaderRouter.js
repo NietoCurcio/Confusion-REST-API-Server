@@ -1,58 +1,92 @@
 const express = require('express')
+const Leaders = require('../models/leaders')
 
 const leaderRouter = express.Router()
 
 leaderRouter
   .route('/')
-  .all((req, res, next) => {
-    res.status(200)
-    res.header('Content-Type', 'text/plain')
-    next()
+  .get((req, res, next) => {
+    Leaders.find({})
+      .then(
+        (leaders) => {
+          res.status = 200
+          res.header('Content-Type', 'application/json')
+          res.json(leaders)
+        },
+        (err) => next(new Error('Error ' + err))
+      )
+      .catch((err) => next(new Error('Error ' + err)))
   })
-  .get((req, res) => {
-    res.send('Will send all the leaders to you!')
-  })
-  .post((req, res) => {
-    res.send(
-      'Will add the leader: ' +
-        req.body.name +
-        ' with details: ' +
-        req.body.description
-    )
+  .post((req, res, next) => {
+    Leaders.insertMany(req.body)
+      .then(
+        (leaders) => {
+          res.status = 200
+          res.header('Content-Type', 'application/json')
+          res.json(leaders)
+        },
+        (err) => next(new Error('Error ' + err))
+      )
+      .catch((err) => next(new Error('Error ' + err)))
   })
   .put((req, res) => {
     res.status(403)
-    res.send('Put operation not supported on /leaders')
+    res.send('PUT operation not supported on /leaders')
   })
-  .delete((req, res) => {
-    res.send('Deleting all the leaders')
+  .delete((req, res, next) => {
+    Leaders.deleteMany({})
+      .then(
+        (resp) => {
+          res.statusCode = 200
+          res.header('Content-Type', 'application/json')
+          res.json(resp)
+        },
+        (err) => next(new Error('Error ' + err))
+      )
+      .catch((err) => next(new Error('Error ' + err)))
   })
 
 leaderRouter
   .route('/:leaderId')
-  .all((req, res, next) => {
-    res.status(200)
-    res.header('Content-Type', 'text/plain')
-    next()
-  })
-  .get((req, res) => {
-    res.send('Will send details of leader  ' + req.params.leaderId)
+  .get((req, res, next) => {
+    Leaders.findById(req.params.leaderId)
+      .then(
+        (leader) => {
+          res.statusCode = 200
+          res.header('Content-Type', 'application/json')
+          res.json(leader)
+        },
+        (err) => next(new Error('Error ' + err))
+      )
+      .catch((err) => next(new Error('Error ' + err)))
   })
   .post((req, res) => {
     res.status(403)
-    res.send('Put operation not supported on /leaders/' + req.params.leaderId)
+    res.send('POST operation not supported on /leaders/' + req.params.leaderId)
   })
-  .put((req, res) => {
-    res.write('Updating the leader ' + req.params.leaderId + '\n')
-    res.end(
-      'Will update the leader: ' +
-        req.body.name +
-        ' with details ' +
-        req.body.description
+  .put((req, res, next) => {
+    Leaders.findByIdAndUpdate(
+      req.params.leaderId,
+      { $set: req.body },
+      { new: true }
     )
+      .then(
+        (leader) => {
+          res.status = 200
+          res.header('Content-Type', 'application/json')
+          res.json(leader)
+        },
+        (err) => next(new Error('Error ' + err))
+      )
+      .catch((err) => next(new Error('Error ' + err)))
   })
-  .delete((req, res) => {
-    res.send('Deleting the leader ' + req.params.leaderId)
+  .delete((req, res, next) => {
+    Leaders.findByIdAndDelete(req.params.leaderId)
+      .then(
+        (resp) => res.json(resp),
+        (err) => next(new Error('Error ' + err))
+      )
+      .catch((err) => next(new Error('Error ' + err)))
   })
 
 module.exports = leaderRouter
