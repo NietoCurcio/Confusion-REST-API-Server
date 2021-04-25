@@ -36,6 +36,45 @@ app.use(logger('dev'))
 app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
 app.use(cookieParser())
+
+function auth(req, res, next) {
+  // console.log(req.headers)
+  let authHeader = req.headers.authorization
+  // console.log(authHeader)
+  // console.log(typeof authHeader)
+  if (!authHeader) {
+    let err = new Error('You are not authenticated')
+    res.header('WWW-Authenticate', 'Basic')
+    err.status = 401
+    next(err)
+  } else {
+    // console.log(typeof new Buffer.from(authHeader.split(' ')[1], 'base64'))
+    let auth = new Buffer.from(authHeader.split(' ')[1], 'base64')
+      .toString()
+      .split(':')
+    // Buffer represents a sequence of bytes, in this case Base64 enconding, could be 'utf8' as well
+    // convert the auth (that comes as 'Basic auth', the auth in base64) to a buffer object
+    // console.log(auth)
+    if (auth[0] === 'admin' && auth[1] === 'password') {
+      next()
+      // continue to the next middleware
+      // it's like a middleware chain
+    } else {
+      let err = new Error('You are not authenticated')
+      res.header('WWW-Authenticate', 'Basic')
+      res.status(401)
+      err.status = 401
+      next(err)
+    }
+  }
+}
+
+app.use(auth)
+// notice that the middlewares below (static and routes) will be
+// accessed only after passing through the Authorization middleware
+// Express is structured in middlewares
+// (code that is in the middle of req res cycle) top to bottom
+
 app.use(express.static(path.join(__dirname, 'public')))
 
 app.use('/', indexRouter)
