@@ -10,7 +10,15 @@ dishRouter
   .route('/')
   .get((req, res) => {
     // Dishes.find({}, (err, res) => {}) or...
+    // document database, mongodb, expect documents to be self-contained,
+    // everything it needs is stored within the document
+    // but we can store references to other documents using the ObjectId
+    // uses .populate only when is needed since it takes time for the server
+    // dishes => each dish => comments => each comment => get comment's User document
+    // USE OF POPULATE CAN OVERHEAD THE SERVER SIDE
     Dishes.find({})
+      .populate({ path: 'comments', populate: { path: 'author' } })
+      // populate multiple levels
       .then(
         (dishes) => {
           res.statusCode = 200
@@ -83,6 +91,7 @@ dishRouter
   .route('/:dishId')
   .get((req, res) => {
     Dishes.findById(req.params.dishId)
+      .populate({ path: 'comments', populate: { path: 'author' } })
       .then(
         (dish) => {
           res.statusCode = 200
@@ -146,7 +155,9 @@ dishRouter
       .then(
         (dish) => {
           if (dish) {
-            Comments.find({ _id: { $in: dish.comments } }, (err, response) => {
+            let queryComments = Comments.find({ _id: { $in: dish.comments } })
+            queryComments.populate('author')
+            queryComments.exec((err, response) => {
               res.json(response)
             })
           } else {
@@ -174,12 +185,19 @@ dishRouter
             // if comments were a subdocument of Dishes Model, (Schemas created in same file and export 1 model)
             // we would just make a dish.comments.push(req.body), since there's no need to create Comments docs
             // But we are making a reference to comments ObjectId (Dish has comments references)
+            req.body.author = req.user._id
+            // passport.authenticate() loaded user information in req.user
+            // the information about the user comes in its Authorization: Bearer token header
             Comments.insertMany(req.body, (err, response) => {
               dish.comments.push(response.map((comment) => comment._id))
               dish.save().then((dish) => {
-                res.statusCode = 200
-                res.header('Content-Type', 'application/json')
-                res.json(dish)
+                Dishes.findById(dish._id)
+                  .populate('comments')
+                  .then((dish) => {
+                    res.statusCode = 200
+                    res.header('Content-Type', 'application/json')
+                    res.json(dish)
+                  })
               })
             })
           } else {
@@ -243,7 +261,9 @@ dishRouter
         (dish) => {
           if (dish && dish.comments.includes(req.params.commentId)) {
             console.log('GET SPECIFIC COMMENT')
-            Comments.findById(req.params.commentId, (err, response) => {
+            queryComment = Comments.findById(req.params.commentId)
+            queryComment.populate('author')
+            queryComment.exec((err, response) => {
               res.json(response)
             })
           } else if (!dish) {
@@ -284,7 +304,12 @@ dishRouter
                 { $set: req.body },
                 { new: true },
                 (err, response) => {
-                  res.json(response)
+                  Dishes.findById(dish._id)
+                    .populate({
+                      path: 'comments',
+                      populate: { path: 'author' },
+                    })
+                    .then((dish) => res.json(dish))
                 }
               )
             }
@@ -321,11 +346,10 @@ dishRouter
                       ),
                     },
                   },
-                  { new: true },
-                  (err, dish) => {
-                    res.json(dish)
-                  }
+                  { new: true }
                 )
+                  .populate({ path: 'comments', populate: { path: 'author' } })
+                  .then((dish) => res.json(dish))
               }
             )
           } else if (!dish) {
