@@ -3,6 +3,8 @@ var express = require('express')
 var path = require('path')
 var cookieParser = require('cookie-parser')
 var logger = require('morgan')
+const session = require('express-session')
+const FileStore = require('session-file-store')(session)
 
 var indexRouter = require('./routes/index')
 var usersRouter = require('./routes/users')
@@ -36,16 +38,29 @@ app.use(logger('dev'))
 app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
 // handle signed cookies
-// Cookies comes in the request
-app.use(cookieParser('1234567890'))
+// Cookies comes in the requests
+// app.use(cookieParser('1234567890'))
 // https://stackoverflow.com/questions/6068113/do-sessions-really-violate-restfulness
-// remember to be a RESTFUL API, since an API connect to many client and client to many microservices
+// remember to be a RESTFUL API has to be stateless,
+// since an API connect to many client and client to many microservices
 // to maintain scalability concepts
+app.use(
+  session({
+    name: 'session-id',
+    secret: '1234567890',
+    saveUninitialized: false,
+    resave: false,
+    store: new FileStore(),
+  })
+)
 
 function auth(req, res, next) {
-  console.log(req.signedCookies)
-  console.log(req.cookies)
-  if (!req.signedCookies.user) {
+  // console.log(req.signedCookies)
+  // console.log(req.cookies)
+  console.log('AUTH Function (middleware authorization handler)')
+  console.log(req.session)
+  // if (!req.signedCookies.user) {
+  if (!req.session.user) {
     // console.log(authHeader)
     // console.log(typeof authHeader)
     let authHeader = req.headers.authorization
@@ -63,8 +78,9 @@ function auth(req, res, next) {
       // convert the auth (that comes as 'Basic auth', the auth in base64) to a buffer object
       // console.log(auth)
       if (auth[0] === 'admin' && auth[1] === 'password') {
-        res.cookie('user', 'admin', { signed: true })
-        res.cookie('test', 'test')
+        // res.cookie('user', 'admin', { signed: true })
+        // res.cookie('test', 'test')
+        req.session.user = 'admin'
         next()
         // continue to the next middleware
         // it's like a middleware chain
@@ -82,7 +98,8 @@ function auth(req, res, next) {
     // cookies are used to "remember" who the user is, to the server
     // so once our client has the cookie, we could make requests even without Authorization headers
     // but carefull, it seems to be danger, like manipulating cookies to pretend to be someone
-    if (req.signedCookies.user === 'admin') next()
+    // if (req.signedCookies.user === 'admin') next()
+    if (req.session.user === 'admin') next()
     else {
       let err = new Error('You are not authenticated')
       err.status = 401
