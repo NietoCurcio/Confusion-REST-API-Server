@@ -35,34 +35,56 @@ app.set('view engine', 'jade')
 app.use(logger('dev'))
 app.use(express.json())
 app.use(express.urlencoded({ extended: false }))
-app.use(cookieParser())
+// handle signed cookies
+// Cookies comes in the request
+app.use(cookieParser('1234567890'))
+// https://stackoverflow.com/questions/6068113/do-sessions-really-violate-restfulness
+// remember to be a RESTFUL API, since an API connect to many client and client to many microservices
+// to maintain scalability concepts
 
 function auth(req, res, next) {
-  // console.log(req.headers)
-  let authHeader = req.headers.authorization
-  // console.log(authHeader)
-  // console.log(typeof authHeader)
-  if (!authHeader) {
-    let err = new Error('You are not authenticated')
-    res.header('WWW-Authenticate', 'Basic')
-    err.status = 401
-    next(err)
-  } else {
-    // console.log(typeof new Buffer.from(authHeader.split(' ')[1], 'base64'))
-    let auth = new Buffer.from(authHeader.split(' ')[1], 'base64')
-      .toString()
-      .split(':')
-    // Buffer represents a sequence of bytes, in this case Base64 enconding, could be 'utf8' as well
-    // convert the auth (that comes as 'Basic auth', the auth in base64) to a buffer object
-    // console.log(auth)
-    if (auth[0] === 'admin' && auth[1] === 'password') {
-      next()
-      // continue to the next middleware
-      // it's like a middleware chain
-    } else {
+  console.log(req.signedCookies)
+  console.log(req.cookies)
+  if (!req.signedCookies.user) {
+    // console.log(authHeader)
+    // console.log(typeof authHeader)
+    let authHeader = req.headers.authorization
+    if (!authHeader) {
       let err = new Error('You are not authenticated')
       res.header('WWW-Authenticate', 'Basic')
-      res.status(401)
+      err.status = 401
+      next(err)
+    } else {
+      // console.log(typeof new Buffer.from(authHeader.split(' ')[1], 'base64'))
+      let auth = new Buffer.from(authHeader.split(' ')[1], 'base64')
+        .toString()
+        .split(':')
+      // Buffer represents a sequence of bytes, in this case Base64 enconding, could be 'utf8' as well
+      // convert the auth (that comes as 'Basic auth', the auth in base64) to a buffer object
+      // console.log(auth)
+      if (auth[0] === 'admin' && auth[1] === 'password') {
+        res.cookie('user', 'admin', { signed: true })
+        res.cookie('test', 'test')
+        next()
+        // continue to the next middleware
+        // it's like a middleware chain
+      } else {
+        let err = new Error('You are not authenticated')
+        res.header('WWW-Authenticate', 'Basic')
+        // res.status(401) that is being handled by error handling middleware,
+        // that takes an err as first argument
+        err.status = 401
+        next(err)
+      }
+    }
+  } else {
+    // all subsequent requests (that has req.signedCookies.user)
+    // cookies are used to "remember" who the user is, to the server
+    // so once our client has the cookie, we could make requests even without Authorization headers
+    // but carefull, it seems to be danger, like manipulating cookies to pretend to be someone
+    if (req.signedCookies.user === 'admin') next()
+    else {
+      let err = new Error('You are not authenticated')
       err.status = 401
       next(err)
     }
