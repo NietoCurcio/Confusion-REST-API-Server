@@ -8,7 +8,9 @@ const jwt = require('jsonwebtoken')
 const config = require('./config')
 
 // We are using additional methods in User model, provided by passport-local-mongoose plugin
-// There's no much about it, in passport's documentations
+// passport-local-mongoose docs - https://github.com/saintedlama/passport-local-mongoose
+// passport-local-mongoose make things more automatically, more simple to Users Model configurations
+// Notice how the passport.use is configured to jwt strategy, takes 'options' and 'verify' callback
 exports.local = passport.use(new LocalStrategy(User.authenticate()))
 passport.serializeUser(User.serializeUser())
 passport.deserializeUser(User.deserializeUser())
