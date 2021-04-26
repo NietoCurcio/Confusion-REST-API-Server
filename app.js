@@ -5,6 +5,8 @@ var cookieParser = require('cookie-parser')
 var logger = require('morgan')
 const session = require('express-session')
 const FileStore = require('session-file-store')(session)
+const passport = require('passport')
+const authenticate = require('./authenticate')
 
 var indexRouter = require('./routes/index')
 var usersRouter = require('./routes/users')
@@ -65,8 +67,10 @@ function auth(req, res, next) {
   // console.log(req.cookies)
   console.log('AUTH Function (middleware authorization handler)')
   console.log(req.session)
+  console.log(req.user)
   // if (!req.signedCookies.user) {
-  if (!req.session.user) {
+  // req.user is loaded by passport session
+  if (!req.user) {
     let err = new Error('You are not authenticated')
     err.status = 401
     next(err)
@@ -76,14 +80,12 @@ function auth(req, res, next) {
     // so once our client has the cookie, we could make requests even without Authorization headers
     // but carefull, it seems to be danger, like manipulating cookies to pretend to be someone
     // if (req.signedCookies.user === 'admin') next()
-    if (req.session.user === 'authenticated') next()
-    else {
-      let err = new Error('You are not authenticated')
-      err.status = 403
-      next(err)
-    }
+    next()
   }
 }
+
+app.use(passport.initialize())
+app.use(passport.session())
 
 app.use('/', indexRouter)
 app.use('/users', usersRouter)
