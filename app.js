@@ -56,7 +56,7 @@ app.use(
 // cookies in client remember or tell the server who we are, which session we are in the server,
 // and the server has its sessions that have its states in the server (.i.e, authenticated or not)
 // (REST has to be stateless, so we have JWT tokens)
-// Cookie header is sent in the requests, localStorage and localStorage are not,
+// Cookie header is sent in the requests, localStorage and sessionStorage are not,
 // since those are states in the browsers, not information in the client to tell to the server which
 // session state in the server we are
 
