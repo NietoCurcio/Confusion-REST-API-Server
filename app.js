@@ -61,52 +61,26 @@ function auth(req, res, next) {
   console.log(req.session)
   // if (!req.signedCookies.user) {
   if (!req.session.user) {
-    // console.log(authHeader)
-    // console.log(typeof authHeader)
-    let authHeader = req.headers.authorization
-    if (!authHeader) {
-      let err = new Error('You are not authenticated')
-      res.header('WWW-Authenticate', 'Basic')
-      err.status = 401
-      next(err)
-    } else {
-      // console.log(typeof new Buffer.from(authHeader.split(' ')[1], 'base64'))
-      let auth = new Buffer.from(authHeader.split(' ')[1], 'base64')
-        .toString()
-        .split(':')
-      // Buffer represents a sequence of bytes, in this case Base64 enconding, could be 'utf8' as well
-      // convert the auth (that comes as 'Basic auth', the auth in base64) to a buffer object
-      // console.log(auth)
-      if (auth[0] === 'admin' && auth[1] === 'password') {
-        // res.cookie('user', 'admin', { signed: true })
-        // res.cookie('test', 'test')
-        req.session.user = 'admin'
-        next()
-        // continue to the next middleware
-        // it's like a middleware chain
-      } else {
-        let err = new Error('You are not authenticated')
-        res.header('WWW-Authenticate', 'Basic')
-        // res.status(401) that is being handled by error handling middleware,
-        // that takes an err as first argument
-        err.status = 401
-        next(err)
-      }
-    }
+    let err = new Error('You are not authenticated')
+    err.status = 401
+    next(err)
   } else {
     // all subsequent requests (that has req.signedCookies.user)
     // cookies are used to "remember" who the user is, to the server
     // so once our client has the cookie, we could make requests even without Authorization headers
     // but carefull, it seems to be danger, like manipulating cookies to pretend to be someone
     // if (req.signedCookies.user === 'admin') next()
-    if (req.session.user === 'admin') next()
+    if (req.session.user === 'authenticated') next()
     else {
       let err = new Error('You are not authenticated')
-      err.status = 401
+      err.status = 403
       next(err)
     }
   }
 }
+
+app.use('/', indexRouter)
+app.use('/users', usersRouter)
 
 app.use(auth)
 // notice that the middlewares below (static and routes) will be
@@ -116,8 +90,6 @@ app.use(auth)
 
 app.use(express.static(path.join(__dirname, 'public')))
 
-app.use('/', indexRouter)
-app.use('/users', usersRouter)
 app.use('/dishes', dishRouter)
 app.use('/promotions', promoRouter)
 app.use('/leaders', leaderRouter)
