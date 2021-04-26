@@ -2,6 +2,7 @@ const express = require('express')
 const mongoose = require('mongoose')
 const Dishes = require('../models/dishes')
 const Comments = require('../models/comments')
+const authenticate = require('../authenticate')
 
 const dishRouter = express.Router()
 
@@ -22,7 +23,9 @@ dishRouter
       )
       .catch((err) => console.log(err))
   })
-  .post((req, res) => {
+  // same concepts of middleware chain
+  // before handle to post something, handle the authentication
+  .post(authenticate.verifyUser, (req, res) => {
     dish = {}
     comments = {}
     for (let i in req.body) {
@@ -53,11 +56,11 @@ dishRouter
         .catch((err) => console.log(err))
     })
   })
-  .put((req, res) => {
+  .put(authenticate.verifyUser, (req, res) => {
     res.status(403)
     res.send('Put operation not supported on dishes')
   })
-  .delete((req, res) => {
+  .delete(authenticate.verifyUser, (req, res) => {
     Dishes.deleteMany({})
       .then(
         (resp) => {
@@ -92,11 +95,11 @@ dishRouter
       )
       .catch((err) => console.log(err))
   })
-  .post((req, res) => {
+  .post(authenticate.verifyUser, (req, res) => {
     res.status(403)
     res.send('POST operation not supported on /dishes/' + req.params.dishId)
   })
-  .put((req, res) => {
+  .put(authenticate.verifyUser, (req, res) => {
     Dishes.findByIdAndUpdate(
       req.params.dishId,
       { $set: req.body },
@@ -114,7 +117,7 @@ dishRouter
       )
       .catch((err) => console.log(err))
   })
-  .delete((req, res) => {
+  .delete(authenticate.verifyUser, (req, res) => {
     Dishes.findByIdAndRemove(req.params.dishId)
       .then(
         (resp) => {
@@ -159,7 +162,7 @@ dishRouter
       )
       .catch((err) => console.log(err))
   })
-  .post((req, res) => {
+  .post(authenticate.verifyUser, (req, res) => {
     // I've created two models for the sake of learning
     // two models that one reference to the other, but remember that you can use subdocuments,
     // declaring comments: [schemaComments], subdocuments and populate sections in mongoose docs
@@ -192,13 +195,13 @@ dishRouter
       )
       .catch((err) => console.log(err))
   })
-  .put((req, res) => {
+  .put(authenticate.verifyUser, (req, res) => {
     res.status(403)
     res.send(
       'Put operation not supported on /dishes' + req.params.dishId + '/comments'
     )
   })
-  .delete((req, res) => {
+  .delete(authenticate.verifyUser, (req, res) => {
     Dishes.findById(req.params.dishId)
       .then(
         (dish) => {
@@ -260,7 +263,7 @@ dishRouter
       )
       .catch((err) => console.log(err))
   })
-  .post((req, res) => {
+  .post(authenticate.verifyUser, (req, res) => {
     res.status(403)
     res.send(
       'POST operation not supported on /dishes/' +
@@ -269,7 +272,7 @@ dishRouter
         req.params.commentId
     )
   })
-  .put((req, res) => {
+  .put(authenticate.verifyUser, (req, res) => {
     Dishes.findById(req.params.dishId)
       .then(
         (dish) => {
@@ -301,7 +304,7 @@ dishRouter
       )
       .catch((err) => console.log(err))
   })
-  .delete((req, res) => {
+  .delete(authenticate.verifyUser, (req, res) => {
     Dishes.findById(req.params.dishId)
       .then(
         (dish) => {
