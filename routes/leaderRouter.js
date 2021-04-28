@@ -18,7 +18,7 @@ leaderRouter
       )
       .catch((err) => next(new Error('Error ' + err)))
   })
-  .post(authenticate.verifyUser, (req, res, next) => {
+  .post(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
     Leaders.insertMany(req.body)
       .then(
         (leaders) => {
@@ -30,22 +30,26 @@ leaderRouter
       )
       .catch((err) => next(new Error('Error ' + err)))
   })
-  .put(authenticate.verifyUser, (req, res) => {
+  .put(authenticate.verifyUser, authenticate.verifyAdmin, (req, res) => {
     res.status(403)
     res.send('PUT operation not supported on /leaders')
   })
-  .delete(authenticate.verifyUser, (req, res, next) => {
-    Leaders.deleteMany({})
-      .then(
-        (resp) => {
-          res.statusCode = 200
-          res.header('Content-Type', 'application/json')
-          res.json(resp)
-        },
-        (err) => next(new Error('Error ' + err))
-      )
-      .catch((err) => next(new Error('Error ' + err)))
-  })
+  .delete(
+    authenticate.verifyUser,
+    authenticate.verifyAdmin,
+    (req, res, next) => {
+      Leaders.deleteMany({})
+        .then(
+          (resp) => {
+            res.statusCode = 200
+            res.header('Content-Type', 'application/json')
+            res.json(resp)
+          },
+          (err) => next(new Error('Error ' + err))
+        )
+        .catch((err) => next(new Error('Error ' + err)))
+    }
+  )
 
 leaderRouter
   .route('/:leaderId')
@@ -61,11 +65,11 @@ leaderRouter
       )
       .catch((err) => next(new Error('Error ' + err)))
   })
-  .post(authenticate.verifyUser, (req, res) => {
+  .post(authenticate.verifyUser, authenticate.verifyAdmin, (req, res) => {
     res.status(403)
     res.send('POST operation not supported on /leaders/' + req.params.leaderId)
   })
-  .put(authenticate.verifyUser, (req, res, next) => {
+  .put(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
     Leaders.findByIdAndUpdate(
       req.params.leaderId,
       { $set: req.body },
@@ -81,13 +85,17 @@ leaderRouter
       )
       .catch((err) => next(new Error('Error ' + err)))
   })
-  .delete(authenticate.verifyUser, (req, res, next) => {
-    Leaders.findByIdAndDelete(req.params.leaderId)
-      .then(
-        (resp) => res.json(resp),
-        (err) => next(new Error('Error ' + err))
-      )
-      .catch((err) => next(new Error('Error ' + err)))
-  })
+  .delete(
+    authenticate.verifyUser,
+    authenticate.verifyAdmin,
+    (req, res, next) => {
+      Leaders.findByIdAndDelete(req.params.leaderId)
+        .then(
+          (resp) => res.json(resp),
+          (err) => next(new Error('Error ' + err))
+        )
+        .catch((err) => next(new Error('Error ' + err)))
+    }
+  )
 
 module.exports = leaderRouter

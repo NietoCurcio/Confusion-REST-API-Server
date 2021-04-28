@@ -33,7 +33,7 @@ dishRouter
   })
   // same concepts of middleware chain
   // before handle to post something, handle the authentication
-  .post(authenticate.verifyUser, (req, res) => {
+  .post(authenticate.verifyUser, authenticate.verifyAdmin, (req, res) => {
     dish = {}
     comments = {}
     for (let i in req.body) {
@@ -64,11 +64,11 @@ dishRouter
         .catch((err) => console.log(err))
     })
   })
-  .put(authenticate.verifyUser, (req, res) => {
+  .put(authenticate.verifyUser, authenticate.verifyAdmin, (req, res) => {
     res.status(403)
     res.send('Put operation not supported on dishes')
   })
-  .delete(authenticate.verifyUser, (req, res) => {
+  .delete(authenticate.verifyUser, authenticate.verifyAdmin, (req, res) => {
     Dishes.deleteMany({})
       .then(
         (resp) => {
@@ -104,11 +104,11 @@ dishRouter
       )
       .catch((err) => console.log(err))
   })
-  .post(authenticate.verifyUser, (req, res) => {
+  .post(authenticate.verifyUser, authenticate.verifyAdmin, (req, res) => {
     res.status(403)
     res.send('POST operation not supported on /dishes/' + req.params.dishId)
   })
-  .put(authenticate.verifyUser, (req, res) => {
+  .put(authenticate.verifyUser, authenticate.verifyAdmin, (req, res) => {
     Dishes.findByIdAndUpdate(
       req.params.dishId,
       { $set: req.body },
@@ -126,7 +126,7 @@ dishRouter
       )
       .catch((err) => console.log(err))
   })
-  .delete(authenticate.verifyUser, (req, res) => {
+  .delete(authenticate.verifyUser, authenticate.verifyAdmin, (req, res) => {
     Dishes.findByIdAndRemove(req.params.dishId)
       .then(
         (resp) => {
@@ -219,7 +219,7 @@ dishRouter
       'Put operation not supported on /dishes' + req.params.dishId + '/comments'
     )
   })
-  .delete(authenticate.verifyUser, (req, res) => {
+  .delete(authenticate.verifyUser, authenticate.verifyAdmin, (req, res) => {
     Dishes.findById(req.params.dishId)
       .then(
         (dish) => {
@@ -255,7 +255,7 @@ dishRouter
 
 dishRouter
   .route('/:dishId/comments/:commentId')
-  .get((req, res) => {
+  .get((req, res, next) => {
     Dishes.findById(req.params.dishId)
       .then(
         (dish) => {
@@ -292,26 +292,41 @@ dishRouter
         req.params.commentId
     )
   })
-  .put(authenticate.verifyUser, (req, res) => {
+  .put(authenticate.verifyUser, (req, res, next) => {
     Dishes.findById(req.params.dishId)
       .then(
         (dish) => {
           console.log('UPDATE SPECIFIC COMMENT')
           if (dish && dish.comments.includes(req.params.commentId)) {
             if (req.body.rating || req.body.comment) {
-              Comments.findByIdAndUpdate(
-                req.params.commentId,
-                { $set: req.body },
-                { new: true },
-                (err, response) => {
-                  Dishes.findById(dish._id)
-                    .populate({
-                      path: 'comments',
-                      populate: { path: 'author' },
-                    })
-                    .then((dish) => res.json(dish))
-                }
-              )
+              Comments.findById(req.params.commentId)
+                .then(
+                  (comment) => {
+                    if (comment.author.equals(req.user._id)) {
+                      if (req.body.comment) comment.comment = req.body.comment
+                      if (req.body.rating) comment.rating = req.body.rating
+                      comment.save((err, comment) => {
+                        if (err) next(err)
+                        else {
+                          Dishes.findById(dish._id)
+                            .populate({
+                              path: 'comments',
+                              populate: { path: 'author' },
+                            })
+                            .then((dish) => res.json(dish))
+                        }
+                      })
+                    } else {
+                      err = new Error(
+                        'You are not authorized to perform this operation!'
+                      )
+                      err.status = 403
+                      next(err)
+                    }
+                  },
+                  (err) => next(err)
+                )
+                .catch((err) => next(err))
             }
           } else if (!dish) {
             err = new Error('Dish ' + req.params.dishId + ' not found')
@@ -329,29 +344,31 @@ dishRouter
       )
       .catch((err) => console.log(err))
   })
-  .delete(authenticate.verifyUser, (req, res) => {
+  .delete(authenticate.verifyUser, (req, res, next) => {
     Dishes.findById(req.params.dishId)
       .then(
         (dish) => {
           if (dish && dish.comments.includes(req.params.commentId)) {
-            Comments.findByIdAndDelete(
-              req.params.commentId,
-              (err, response) => {
-                Dishes.findByIdAndUpdate(
-                  req.params.dishId,
-                  {
-                    $set: {
-                      comments: dish.comments.filter(
-                        (comment) => comment._id != req.params.commentId
-                      ),
-                    },
-                  },
-                  { new: true }
+            Comments.findById(req.params.commentId).then((comment) => {
+              if (comment.author.equals(req.user._id)) {
+                comment.remove()
+                // doing /dishes get with .populate, only will be shown valid documents (that exists)
+                // but without populate we can see that there are ObjectIDs that does not exist anymore
+                // so I'll update dish.comments to avoid useless information in the object
+                dish.comments = dish.comments.filter(
+                  (comment) => comment._id != req.params.commentId
                 )
-                  .populate({ path: 'comments', populate: { path: 'author' } })
-                  .then((dish) => res.json(dish))
+                dish.save((err, response) => {
+                  res.json({ dish: response, commentDeleted: comment })
+                })
+              } else {
+                err = new Error(
+                  'You are not authorized to perform this operation!'
+                )
+                err.status = 403
+                next(err)
               }
-            )
+            })
           } else if (!dish) {
             err = new Error('Dish ' + req.params.dishId + ' not found')
             err.status = 404
