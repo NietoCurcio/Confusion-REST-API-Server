@@ -32,6 +32,22 @@ connect.then(
 
 var app = express()
 
+app.all('*', (req, res, next) => {
+  if (req.secure) {
+    next()
+  } else {
+    // 307 = resource in temporarily diffrent url and user agend (client) must not change the request method]
+    // if it perfoms an automatic redirection to the url
+    res.redirect(
+      307,
+      'https://' + req.hostname + ':' + app.get('secPort') + req.url
+    )
+    // when accesing https://localhost:3443 we got a danger message, saying that our connection is
+    // not private, because the certificate we are using (generated with openssl CLI) is self-signed
+    // and not by an authority recognized by browser
+  }
+})
+
 // view engine setup
 app.set('views', path.join(__dirname, 'views'))
 app.set('view engine', 'jade')
