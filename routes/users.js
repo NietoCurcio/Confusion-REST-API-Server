@@ -2,14 +2,14 @@ var express = require('express')
 var router = express.Router()
 const User = require('../models/users')
 const passport = require('passport')
-const authenticate = require('../authenticate')
+const { verifyUser, verifyAdmin, getToken } = require('../authenticate')
 const cors = require('./cors')
 /* GET users listing. */
 router.get(
   '/',
   cors.corsWithOptions,
-  authenticate.verifyUser,
-  authenticate.verifyAdmin,
+  verifyUser,
+  verifyAdmin,
   (req, res, next) => {
     User.find({}).then((users) => res.json(users))
   }
@@ -48,7 +48,7 @@ router.post(
   cors.corsWithOptions,
   passport.authenticate('local'),
   (req, res) => {
-    const token = authenticate.getToken({ _id: req.user._id })
+    const token = getToken({ _id: req.user._id })
     res.status(200)
     res.header('Content-Type', 'application/json')
     res.json({ success: true, status: 'You are successfully logged in', token })
@@ -66,5 +66,43 @@ router.get('/logout', (req, res, next) => {
     next(err)
   }
 })
+
+// more secure, the url returned contains a code param that can be used only once
+router.get('/auth/facebook', passport.authenticate('facebook'))
+
+router.get(
+  '/auth/facebook/callback',
+  passport.authenticate('facebook'),
+  (req, res) => {
+    if (req.user) {
+      const token = getToken({ _id: req.user._id })
+      res.status(200)
+      res.header('Content-Type', 'application/json')
+      res.json({
+        success: true,
+        status: 'You are successfully logged in',
+        token,
+      })
+    }
+  }
+)
+
+// passport-facebook-token
+router.get(
+  '/auth/facebook/token',
+  passport.authenticate('facebook-token'),
+  (req, res) => {
+    if (req.user) {
+      const token = getToken({ _id: req.user._id })
+      res.status(200)
+      res.header('Content-Type', 'application/json')
+      res.json({
+        success: true,
+        status: 'You are successfully logged in',
+        token,
+      })
+    }
+  }
+)
 
 module.exports = router
