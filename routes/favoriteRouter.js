@@ -33,7 +33,12 @@ favoriteRouter
         })
         insertFavorite.save((err, response) => {
           if (err) return next(err)
-          res.json(response)
+          Favorites.findById(response._id)
+            .populate('user')
+            .populate('dishes')
+            .then((favorites) => {
+              res.json(favorites)
+            })
         })
       } else {
         const toFavorite = req.body.filter(
@@ -47,7 +52,12 @@ favoriteRouter
         favorite.dishes.push(...toFavorite)
         favorite.save((err, response) => {
           if (err) return next(err)
-          res.json(response)
+          Favorites.findById(response._id)
+            .populate('user')
+            .populate('dishes')
+            .then((favorites) => {
+              res.json(favorites)
+            })
         })
       }
     })
@@ -76,17 +86,17 @@ favoriteRouter
       .then((favorite) => {
         if (!favorite) {
           res.status(404)
-          return res.send("This user don't have favorite")
+          return res.json({ exists: false, favorites: favorite })
         }
         if (favorite.dishes.includes(req.params.dishId)) {
-          Dishes.findById(req.params.dishId)
-            .then((dish) => {
-              res.json(dish)
-            })
-            .catch((err) => next(err))
+          // Dishes.findById(req.params.dishId)
+          //   .then((dish) => {
+          //     res.json(dish)
+          //   })
+          //   .catch((err) => next(err))
+          res.json({ exists: true, favorites: favorite })
         } else {
-          res.status(404)
-          res.send('This dish is not included in your favorites')
+          res.status(404).json({ exists: false, favorites: favorite })
         }
       })
       .catch((err) => next(err))
@@ -107,7 +117,12 @@ favoriteRouter
               })
               insert.save((err, response) => {
                 if (err) return next(err)
-                res.json(response)
+                Favorites.findById(response._id)
+                  .populate('user')
+                  .populate('dishes')
+                  .then((favorites) => {
+                    res.json(favorites)
+                  })
               })
             } else {
               if (favorite.dishes.indexOf(req.params.dishId) > -1) {
@@ -117,7 +132,12 @@ favoriteRouter
               favorite.dishes.push(req.params.dishId)
               favorite.save((err, response) => {
                 if (err) return next(err)
-                res.json(response)
+                Favorites.findById(response._id)
+                  .populate('user')
+                  .populate('dishes')
+                  .then((favorites) => {
+                    res.json(favorites)
+                  })
               })
             }
           })
@@ -141,7 +161,12 @@ favoriteRouter
         )
         favorite.save((err, response) => {
           if (err) return next(err)
-          res.json(response)
+          Favorites.findById(response._id)
+            .populate('user')
+            .populate('dishes')
+            .then((favorites) => {
+              res.json(favorites)
+            })
         })
       })
       .catch((err) => next(err))

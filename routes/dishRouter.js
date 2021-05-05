@@ -18,7 +18,7 @@ dishRouter
     // uses .populate only when is needed since it takes time for the server
     // dishes => each dish => comments => each comment => get comment's User document
     // USE OF POPULATE CAN OVERHEAD THE SERVER SIDE
-    Dishes.find({})
+    Dishes.find(req.query)
       .populate({ path: 'comments', populate: { path: 'author' } })
       // populate multiple levels
       .then(
@@ -181,6 +181,8 @@ dishRouter
     }
   )
 
+// The author's course has cutted out this part
+// I'll make a copy
 dishRouter
   .route('/:dishId/comments')
   .options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
@@ -208,7 +210,7 @@ dishRouter
       )
       .catch((err) => console.log(err))
   })
-  .post(cors.corsWithOptions, authenticate.verifyUser, (req, res) => {
+  .post(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
     // I've created two models for the sake of learning
     // two models that one reference to the other, but remember that you can use subdocuments,
     // declaring comments: [schemaComments], subdocuments and populate sections in mongoose docs

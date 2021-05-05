@@ -5,6 +5,7 @@ const passport = require('passport')
 const { verifyUser, verifyAdmin, getToken } = require('../authenticate')
 const cors = require('./cors')
 /* GET users listing. */
+router.options('*', cors.corsWithOptions, (req, res) => res.sendStatus(200))
 router.get(
   '/',
   cors.corsWithOptions,
@@ -43,17 +44,32 @@ router.post('/signup', cors.corsWithOptions, (req, res, next) => {
   )
 })
 
-router.post(
-  '/login',
-  cors.corsWithOptions,
-  passport.authenticate('local'),
-  (req, res) => {
+router.post('/login', cors.corsWithOptions, (req, res, next) => {
+  passport.authenticate('local', (err, user, info) => {
+    if (err) return next(err)
+    if (!user) {
+      const token = getToken({ _id: req.user._id })
+      res.statusCode = 401
+      res.header('Content-Type', 'application/json')
+      return res.json({
+        success: false,
+        status: 'Login unsuccessful',
+        err: info,
+      })
+    }
+    req.logIn(user, (err) => {
+      if (err) {
+        return res.status(401).json({
+          success: false,
+          status: 'Login unsuccessful',
+          err: 'Could not log in user',
+        })
+      }
+    })
     const token = getToken({ _id: req.user._id })
-    res.status(200)
-    res.header('Content-Type', 'application/json')
-    res.json({ success: true, status: 'You are successfully logged in', token })
-  }
-)
+    res.json({ sucess: true, status: 'Login Sucessful', token })
+  })(req, res, next)
+})
 
 router.get('/logout', (req, res, next) => {
   if (req.session) {
@@ -104,5 +120,17 @@ router.get(
     }
   }
 )
+
+router.get('/checkJWTToken', cors.corsWithOptions, (req, res, next) => {
+  passport.authenticate('jwt', { session: false }, (err, user, info) => {
+    if (err) return next(err)
+    if (!user) {
+      res.statusCode = 401
+      res.header('Content-Type', 'application/json')
+      return res.json({ status: 'JWT Invalid', success: false, err: info })
+    }
+    return res.json({ status: 'JWT Valid', success: true, user })
+  })(req, res, next)
+})
 
 module.exports = router
