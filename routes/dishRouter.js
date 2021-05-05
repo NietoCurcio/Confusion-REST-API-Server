@@ -39,7 +39,7 @@ dishRouter
     cors.corsWithOptions,
     authenticate.verifyUser,
     authenticate.verifyAdmin,
-    (req, res) => {
+    (req, res, next) => {
       dish = {}
       comments = {}
       for (let i in req.body) {
@@ -49,6 +49,7 @@ dishRouter
       // two models that one reference to the other, but remember that you can use subdocuments,
       // declaring comments: [schemaComments], subdocuments and populate sections in mongoose docs
       Comments.insertMany(comments, (err, response) => {
+        if (err) return next(err)
         dishComments = response.map((comment) => comment._id)
         dish.comments = dishComments
         Dishes.create(dish)
