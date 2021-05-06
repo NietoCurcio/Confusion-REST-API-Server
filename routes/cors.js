@@ -5,7 +5,7 @@ const app = express()
 const whileList = [
   'http://localhost:3000',
   'https://localhost:3443',
-  // 'http://localhost:3000',
+  'http://localhost:3001',
 ]
 const corsOptionsDelegate = (req, callback) => {
   let corsOptions = {}

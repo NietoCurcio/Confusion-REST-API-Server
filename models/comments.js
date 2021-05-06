@@ -35,7 +35,7 @@ const commentSchema = new Schema(
     // that actually makes relationships
   },
   {
-    timestamp: true,
+    timestamps: true,
   }
 )
 

@@ -67,7 +67,7 @@ router.post('/login', cors.corsWithOptions, (req, res, next) => {
       }
     })
     const token = getToken({ _id: req.user._id })
-    res.json({ sucess: true, status: 'Login Sucessful', token })
+    res.json({ success: true, status: 'Login Sucessful', token })
   })(req, res, next)
 })
 
