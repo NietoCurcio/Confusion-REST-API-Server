@@ -3,3 +3,48 @@ extends layout
 block content
   h1= title
   p Welcome to #{title}
+
+  div#routes
+  h2 There are protected routes that requires authentication, some requires an authenticated and admin user.
+    div#users
+      div#route
+        p /users/auth/facebook
+        p Facebook OAuth using passport-facebook strategy
+      div#route
+        p /users/login
+        p Authenticate an user
+      div#route
+        p /users/signup
+        p Register an user
+      div#route
+        p /users/logout
+        p Clear cookies and destroy a session (not used, actually uses JWT). <br> In the cookies and sessions lesson, but REST API has to be stateless
+    div#dishes
+        div#route
+          p /dishes/
+          p GET all dishes, POST a dish @protected, DELETE all dishes @protected
+        div#route
+          p /dishes/:dishId
+          P GET a dish, PUT update a dish @protected, DELETE delete a dish @protected
+        div#route
+          p /dishes/:dishId/comments
+          p GET a dish's comments, POST a dish comment, DELETE dish's comments @protected
+        div#route
+          p /dishes/:dishId/comments/:commentId
+          p GET a comment, PUT update a comment, DELETE delete a comment
+    div#imageUpload
+      div#route
+        p /imageUpload
+        p Upload image endpoint
+    div#comments
+      div#route
+        p /comments
+        p Comments endpoint
+    div#favorites
+      div#route
+        p /favorites
+        p Favorites endpoint
+    div#leaders
+      div#route
+        p /leaders
+        p Leaders endpoint

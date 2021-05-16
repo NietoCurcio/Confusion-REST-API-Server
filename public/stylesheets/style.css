@@ -1,8 +1,26 @@
 body {
   padding: 50px;
-  font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+  font: 14px 'Lucida Grande', Helvetica, Arial, sans-serif;
 }
 
 a {
-  color: #00B7FF;
+  color: #00b7ff;
+}
+
+#route {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0.5rem;
+  background: #ccc;
+  border-radius: 10px;
+  border-bottom: 1px solid #333;
+}
+
+#route p {
+  margin: 1rem;
+}
+
+#route p:last-child {
+  font-size: 16px;
 }
